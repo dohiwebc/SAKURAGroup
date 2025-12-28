@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大会結果一覧</title>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
+  authDomain: "dodge-player-7a5ff.firebaseapp.com",
+  databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dodge-player-7a5ff",
+  storageBucket: "dodge-player-7a5ff.firebasestorage.app",
+  messagingSenderId: "752106851441",
+  appId: "1:752106851441:web:7081da0e058980ab479fd0",
+  measurementId: "G-84DLRYS2X4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// =======================
+// 正方形インスタ用画像生成
+// =======================
+function createInstagramImage(data) {
+  const {
+    year,
+    tournamentName,
+    category,
+    teamA,
+    teamB,
+    scoreA,
+    scoreB,
+  } = data;
+
+  const result = scoreA > scoreB ? "WIN" : scoreA < scoreB ? "LOSE" : "DRAW";
+
+  const canvas = document.createElement("canvas");
+  const size = 1080;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+
+  // 背景
+  const grad = ctx.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, "#0f0f0f");
+  grad.addColorStop(1, "#1a1a1a");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+
+  // 外枠
+  ctx.strokeStyle = "#f6d36b";
+  ctx.lineWidth = 12;
+  ctx.strokeRect(40, 40, size - 80, size - 80);
+
+  ctx.textAlign = "center";
+
+  let yPos = 140;
+
+  // 年度
+  ctx.fillStyle = "#fff";
+  ctx.font = "50px 'Cinzel', serif";
+  ctx.fillText(`${year}`, size/2, yPos);
+  yPos += 80;
+
+  // 大会名
+  ctx.font = "60px 'Cinzel', serif";
+  ctx.fillText(`${tournamentName}`, size/2, yPos);
+  yPos += 90;
+
+  // カテゴリー
+  ctx.font = "45px 'Roboto Slab', serif";
+  ctx.fillText(`${category}`, size/2, yPos);
+  yPos += 90;
+
+  // チーム名（自動改行＆縮小）
+  ctx.font = "55px 'Roboto Slab', serif";
+  ctx.fillStyle = "#f5e6b1";
+  const maxWidth = size - 100;
+  const teamText = `${teamA}  vs  ${teamB}`;
+  let fontSize = 55;
+  while(ctx.measureText(teamText).width > maxWidth && fontSize > 30){
+    fontSize -= 1;
+    ctx.font = `${fontSize}px 'Roboto Slab', serif`;
+  }
+  ctx.fillText(teamText, size/2, yPos);
+  yPos += 100;
+
+  // スコア
+  ctx.font = "90px 'Cinzel', serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(`${scoreA} - ${scoreB}`, size/2, yPos);
+  yPos += 120;
+
+  // 勝敗
+  ctx.font = "120px 'Cinzel', serif";
+  ctx.fillStyle = result === "WIN" ? "#7fe27f" : result === "LOSE" ? "#ff6666" : "#aaa";
+  ctx.fillText(result, size/2, yPos);
+
+  // ダウンロード
+  const link = document.createElement("a");
+  link.download = `${teamA}_vs_${teamB}_${tournamentName}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+// =======================
+// 試合カード生成（横長カードは変更なし）
+// =======================
+async function loadMatches() {
+  const dbRef = ref(db);
+  const container = document.getElementById("resultsContainer");
+  container.innerHTML = "";
+
+  try {
+    const snapshot = await get(child(dbRef, "matches"));
+    if (!snapshot.exists()) {
+      container.textContent = "データが存在しません。";
+      return;
+    }
+
+    const matchesData = snapshot.val();
+
+    const years = {};
+    for (const matchId in matchesData) {
+      const match = matchesData[matchId];
+      const year = match.year || "未分類";
+      if (!years[year]) years[year] = [];
+      years[year].push(match);
+    }
+
+    Object.keys(years).sort((a,b)=>parseInt(b)-parseInt(a)).forEach(year => {
+      const yearButton = document.createElement("button");
+      yearButton.classList.add("accordion");
+      yearButton.textContent = year;
+      container.appendChild(yearButton);
+
+      const yearPanel = document.createElement("div");
+      yearPanel.classList.add("panel");
+      container.appendChild(yearPanel);
+
+      const tournaments = {};
+      years[year].forEach(match=>{
+        const tour = match.tournamentName || "未分類大会";
+        if(!tournaments[tour]) tournaments[tour]=[];
+        tournaments[tour].push(match);
+      });
+
+      for(const tournament in tournaments){
+        const tourButton = document.createElement("button");
+        tourButton.classList.add("accordion");
+        tourButton.textContent = tournament;
+        yearPanel.appendChild(tourButton);
+
+        const tourPanel = document.createElement("div");
+        tourPanel.classList.add("panel");
+        yearPanel.appendChild(tourPanel);
+
+        const categories = {};
+        tournaments[tournament].forEach(match=>{
+          const cat = match.category || "未分類";
+          if(!categories[cat]) categories[cat]=[];
+          categories[cat].push(match);
+        });
+
+        for(const category in categories){
+          const catButton = document.createElement("button");
+          catButton.classList.add("accordion");
+          catButton.textContent = `カテゴリー：${category}`;
+          tourPanel.appendChild(catButton);
+
+          const catPanel = document.createElement("div");
+          catPanel.classList.add("panel");
+          tourPanel.appendChild(catPanel);
+
+          const matchTypes = { "予選": [], "トーナメント": [] };
+          categories[category].forEach(match=>{
+            const type = match.type || "予選";
+            if(!matchTypes[type]) matchTypes[type]=[];
+            matchTypes[type].push(match);
+          });
+
+          for(const type in matchTypes){
+            if(matchTypes[type].length===0) continue;
+
+            const typeButton = document.createElement("button");
+            typeButton.classList.add("accordion");
+            typeButton.textContent = type;
+            catPanel.appendChild(typeButton);
+
+            const typePanel = document.createElement("div");
+            typePanel.classList.add("panel");
+            catPanel.appendChild(typePanel);
+
+            matchTypes[type].forEach(match=>{
+              const card = document.createElement("div");
+              card.classList.add("match-card");
+
+              // スコア計算
+              let totalA=0,totalB=0;
+              const setsArray = match.sets?Object.values(match.sets):[];
+              setsArray.forEach(set=>{
+                let a = parseInt(set.scoreA);
+                let b = parseInt(set.scoreB);
+                if(set.vpgA!==undefined && set.vpgB!==undefined && (parseInt(set.vpgA)!==0||parseInt(set.vpgB)!==0)){
+                  a=parseInt(set.vpgA);
+                  b=parseInt(set.vpgB);
+                }
+                totalA+=a;
+                totalB+=b;
+              });
+
+              let winStatus="未判定";
+              if(setsArray.length>0){
+                if(totalA>totalB) winStatus="勝利";
+                else if(totalB>totalA) winStatus="敗北";
+                else winStatus="引き分け";
+              }
+
+              const statusDiv = document.createElement("div");
+              statusDiv.classList.add("match-status",winStatus==="勝利"?"win":"lose");
+              statusDiv.textContent = winStatus + " / " + type;
+              card.appendChild(statusDiv);
+
+              const teamsDiv = document.createElement("div");
+              teamsDiv.classList.add("match-teams");
+              teamsDiv.textContent = `${match.teamA} vs ${match.teamB}`;
+              card.appendChild(teamsDiv);
+
+              const scoreDiv = document.createElement("div");
+              scoreDiv.classList.add("match-score");
+              setsArray.forEach((set,index)=>{
+                const vpgText=(set.vpgA!==undefined && set.vpgB!==undefined && (parseInt(set.vpgA)!==0||parseInt(set.vpgB)!==0))?` (VPG: ${set.vpgA}-${set.vpgB})`:"";
+                const line=document.createElement("div");
+                line.textContent=`${index+1}set　${set.scoreA} - ${set.scoreB}${vpgText}`;
+                scoreDiv.appendChild(line);
+              });
+              card.appendChild(scoreDiv);
+
+              const winnerDiv = document.createElement("div");
+              winnerDiv.classList.add("match-winner");
+              winnerDiv.textContent=`勝者：${totalA>totalB?match.teamA:totalB>totalA?match.teamB:"引き分け"}`;
+              card.appendChild(winnerDiv);
+
+              // 保存ボタン
+              const saveBtn=document.createElement("button");
+              saveBtn.textContent="📸";
+              saveBtn.style.position="absolute";
+              saveBtn.style.right="10px";
+              saveBtn.style.bottom="10px";
+              saveBtn.style.width="40px";
+              saveBtn.style.height="40px";
+              saveBtn.style.border="none";
+              saveBtn.style.borderRadius="50%";
+              saveBtn.style.background="#f6d36b";
+              saveBtn.style.cursor="pointer";
+              saveBtn.addEventListener("click",()=>{
+                createInstagramImage({
+                  year: match.year,
+                  tournamentName: match.tournamentName,
+                  category: match.category,
+                  teamA: match.teamA,
+                  teamB: match.teamB,
+                  scoreA: totalA,
+                  scoreB: totalB
+                });
+              });
+              card.appendChild(saveBtn);
+
+              typePanel.appendChild(card);
+            });
+          }
+        }
+      }
+    });
+
+    setupAccordion();
+  } catch(error){
+    console.error(error);
+    container.textContent="読み込みエラーが発生しました。";
+  }
+}
+
+function setupAccordion(){
+  const acc=document.getElementsByClassName("accordion");
+  for(let i=0;i<acc.length;i++){
+    acc[i].addEventListener("click",function(){
+      this.classList.toggle("active");
+      const panel=this.nextElementSibling;
+      panel.style.display=panel.style.display==="block"?"none":"block";
+    });
+  }
+}
+
+window.onload=loadMatches;
+</script>
+
+<style>
+body { background-color: #121212; color: #f5e6b1; font-family: "Noto Sans JP", sans-serif; padding: 20px; }
+h1 { text-align: center; color: gold; margin-bottom: 30px; text-shadow: 0 0 10px rgba(255,215,0,0.6); }
+.accordion { background: linear-gradient(135deg, #2b2b2b, #1a1a1a); color: #f5e6b1; cursor: pointer; padding: 14px 20px; width: 100%; border: none; outline: none; font-size: 18px; text-align: left; border-radius: 10px; margin-top: 10px; transition: all 0.3s ease; }
+.accordion:hover { background: linear-gradient(135deg,#3a3a3a,#2a2a2a); box-shadow:0 0 8px gold; }
+.panel { padding:0 20px; background-color:#1a1a1a; display:none; overflow:hidden; border-left:2px solid gold; border-radius:0 0 10px 10px; margin-bottom:10px; }
+.match-card { position:relative; background-color:#202020; margin:15px 0; padding:20px 12px 12px; border-radius:10px; box-shadow:0 0 10px rgba(255,215,0,0.2); border:1px solid #444; }
+.match-status { position:absolute; top:10px; left:12px; font-size:13px; font-weight:bold; background-color:#333; color:#fff; padding:5px 10px; border-radius:5px; }
+.match-status.win { background:linear-gradient(90deg,#d4af37,#b8860b); color:#000; }
+.match-status.lose { background:linear-gradient(90deg,#444,#222); color:#aaa; }
+.match-teams { text-align:center; font-size:18px; font-weight:bold; color:#fff; margin-top:25px; }
+.match-score { text-align:center; margin-top:10px; line-height:1.8; font-size:16px; }
+.match-winner { text-align:center; margin-top:8px; font-weight:bold; color:gold; text-shadow:0 0 5px gold; }
+</style>
+</head>
+<body>
+<h1>大会結果一覧</h1>
+<div id="resultsContainer">読み込み中...</div>
+</body>
+</html>

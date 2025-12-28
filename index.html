@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>さくらGroup - Dodgeball Team</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Roboto+Slab:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Noto Sans JP", sans-serif; background-color:#121212; color:#f5e6b1; overflow-x:hidden; }
+
+#loading {
+  position: fixed; top:0; left:0;
+  width:100%; height:100%;
+  background:#000;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  z-index:999; overflow:hidden;
+}
+
+.loading-text {
+  position: relative;
+  font-family: 'Cinzel', serif;
+  font-size: 46px;
+  letter-spacing: 3px;
+  color: #ffd700;
+  display: inline-block;
+  overflow: hidden;
+}
+.loading-text span {
+  opacity: 0; display: inline-block; transform: translateY(10px);
+  animation: fadeInUp 0.5s forwards;
+}
+.loading-text span:nth-child(1) { animation-delay: 0s; }
+.loading-text span:nth-child(2) { animation-delay: 0.1s; }
+.loading-text span:nth-child(3) { animation-delay: 0.2s; }
+.loading-text span:nth-child(4) { animation-delay: 0.3s; }
+.loading-text span:nth-child(5) { animation-delay: 0.4s; }
+.loading-text span:nth-child(6) { animation-delay: 0.5s; }
+.loading-text span:nth-child(7) { animation-delay: 0.6s; }
+.loading-text span:nth-child(8) { animation-delay: 0.7s; }
+
+@keyframes fadeInUp { to { opacity:1; transform:translateY(0); } }
+
+.underline-light {
+  position: absolute; bottom:0; left:-100%; width:70%; height:4px;
+  border-radius:8px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 215, 0, 0.3) 25%, rgba(255, 240, 120, 0.9) 50%, rgba(255, 215, 0, 0.3) 75%, transparent 100%);
+  animation: underlineShine 3s ease-in-out 1s forwards;
+}
+@keyframes underlineShine { 0%{left:-70%}50%{left:100%}100%{left:100%} }
+
+.loading-sub { font-family:'Roboto Slab', serif; font-size:18px; color:#bfa86a; margin-top:12px; opacity:0; animation: fadeIn 1.5s ease 2s forwards; }
+@keyframes fadeIn { to { opacity:1; } }
+
+header { width:100%; padding:20px 40px; display:flex; justify-content:center; align-items:center; background-color:#111; border-bottom:2px solid #d4af37; position:sticky; top:0; z-index:10; }
+header h1 { font-family:'Cinzel', serif; font-size:30px; color:#ffd700; letter-spacing:2px; }
+.hamburger { display:flex; flex-direction:column; gap:5px; cursor:pointer; position:absolute; top:33px; left:25px; z-index:20; }
+.hamburger div { width:30px; height:4px; background:#ffd700; transition:0.3s; }
+
+#sideMenu {
+  position: fixed; top:0; left:-250px; width:250px; height:100vh;
+  background: #1a1a1a; z-index: 1000; display:flex; flex-direction:column; padding:60px 20px 20px 20px; gap:20px; transition:0.3s;
+}
+#sideMenu a { color:#f5e6b1; text-decoration:none; font-weight:700; font-size:18px; font-family:'Roboto Slab', serif; }
+#sideMenu a:hover { color:#ffd700; }
+#closeMenu { position:absolute; top:15px; right:15px; font-size:22px; font-weight:700; color:#ffd700; cursor:pointer; z-index:1001; }
+
+.hero { width:100vw; height:80vh; position:relative; overflow:hidden; }
+.hero img { width:100%; height:100%; object-fit:cover; object-position:center; position:absolute; top:0; left:0; opacity:0; transition:opacity 2s ease-in-out; }
+.hero img.active { opacity:1; }
+.overlay { position:absolute; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.55); z-index:1; }
+.hero-content { position:relative; z-index:2; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 20px; }
+.hero h2 { font-family:'Cinzel', serif; font-size:58px; color:#ffd700; margin-bottom:40px; text-shadow:2px 2px 12px #b8860b; letter-spacing:3px; }
+.buttons { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+.buttons a { padding:15px 30px; background:linear-gradient(45deg, #ffd700, #b8860b); color:#111; font-weight:700; border-radius:8px; text-decoration:none; font-family:'Roboto Slab', serif; letter-spacing:1px; transition:0.3s; }
+.buttons a:hover { transform:translateY(-3px); box-shadow:0 5px 15px rgba(255,215,0,0.5); }
+
+section.content { padding:60px 20px; text-align:center; background-color:#111; }
+section.content h3 { color:#ffd700; font-size:32px; margin-bottom:20px; font-family:'Cinzel', serif; text-shadow:1px 1px 5px #000; letter-spacing:1px; }
+section.content p { color:#ddd; max-width:800px; margin:0 auto; line-height:1.8; font-family:'Roboto Slab', serif; font-size:18px; }
+
+.achievements { margin-top:30px; display:flex; flex-direction:column; gap:20px; max-width:800px; margin-left:auto; margin-right:auto; }
+.achievement-card { background:#202020; border:1px solid #444; border-radius:10px; padding:18px; display:block; text-align:center; box-shadow:0 0 15px rgba(212,175,55,0.3); transition:0.3s; }
+.achievement-card:hover { transform:scale(1.02); box-shadow:0 0 20px rgba(255,215,0,0.5); }
+.achievement-info { font-family:'Roboto Slab', serif; font-size:20px; color:#f5e6b1; margin-bottom:8px; font-weight:700; letter-spacing:1px; }
+.achievement-result { font-family:'Cinzel', serif; font-size:32px; font-weight:700; color:#ffd700; text-shadow:0 0 10px #b8860b; letter-spacing:1px; }
+
+@media(max-width:480px){
+  .achievement-card { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:12px 15px; }
+  .achievement-info { font-size:16px; text-align:center; }
+  .achievement-result { font-size:22px; }
+  .hero h2 { font-size:36px; }
+  section.content h3 { font-size:26px; }
+  section.content p { font-size:16px; }
+}
+
+#toTop {
+  position: fixed; bottom: 30px; right: 30px; padding: 12px 18px; font-size: 16px;
+  background: linear-gradient(45deg, #ffd700, #b8860b); color: #111; border: none; border-radius: 6px; cursor: pointer; opacity: 0; visibility: hidden; transition: all 0.4s ease; z-index: 50; font-family: 'Roboto Slab', serif; font-weight: 700;
+}
+#toTop.show { opacity: 1; visibility: visible; }
+
+.fade-up { opacity:0; transform:translateY(20px); transition:all 0.8s ease; }
+.fade-up.show { opacity:1; transform:translateY(0); }
+footer { text-align:center; padding:20px; font-size:14px; color:#888; background-color:#111; border-top:2px solid #ffd700; font-family:'Roboto Slab', serif; }
+
+/* スライダー用 */
+.slider-container { position: relative; max-width: 900px; margin: 30px auto; overflow: hidden; border-radius: 12px; background: #202020; box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+.slider { display: flex; transition: transform 0.4s ease-in-out; }
+.slide { min-width: 100%; position: relative; text-align: center; }
+.slide img { width: 100%; height: 400px; object-fit: cover; display: block; }
+.caption { position: absolute; bottom: 10px; width: 100%; text-align: center; font-family: 'Roboto Slab', serif; font-size: 16px; color: #ffd700; background: rgba(0,0,0,0.4); padding: 6px 0; }
+.prev, .next { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,215,0,0.7); border: none; color: #111; font-size: 28px; padding: 8px 14px; cursor: pointer; border-radius: 50%; transition: 0.3s; }
+.prev:hover, .next:hover { background: rgba(255,215,0,1); }
+.prev { left: 10px; } .next { right: 10px; }
+
+@media(max-width:480px){ .slide img { height: 200px; } .caption { font-size: 14px; } }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-text">
+    <span>さ</span><span>く</span><span>ら</span><span>G</span><span>r</span><span>o</span><span>u</span><span>p</span>
+    <div class="underline-light"></div>
+  </div>
+  <div class="loading-sub">Loading...</div>
+</div>
+
+<header>
+  <h1>さくらGroup</h1>
+  <div class="hamburger" id="hamburger"><div></div><div></div><div></div></div>
+</header>
+
+<div id="sideMenu">
+  <div id="closeMenu">✕</div>
+  <a href="match.html">試合記録</a>
+  <a href="https://instagram.com/">Instagram</a>
+  <a href="#" onclick="checkPassword('https://huuka1419.stars.ne.jp/testindex.html')">選手能力評価</a>
+  <a href="#" onclick="checkPassword('manegement.html')">マネジメントページ</a>
+  <a href="javascript:void(0)" onclick="checkPassword()">戦術ページ</a>
+</div>
+
+<section class="hero">
+  <img src="1686A1F6-735E-496C-A783-A8441EE57804.JPEG" class="active" alt="集合写真1">
+  <img src="IMG_5337 2.JPG" alt="集合写真2">
+  <img src="02E5D201-1A7D-404E-B55F-EBAF992FB28E.JPEG" alt="集合写真3">
+  <div class="overlay"></div>
+  <div class="hero-content">
+    <h2>さくらGroup</h2>
+    <div class="buttons">
+      <a href="match.html">試合記録</a>
+      <a href="https://www.instagram.com/sakura.group2023?igsh=MXVlcHI1bm4zc3V3Mg==">Instagram</a>
+      
+      <a href="#sponsor-recruitment" class="sponsor-button">スポンサー募集</a>
+      </div>
+  </div>
+</section>
+
+
+
+<section class="content fade-up">
+  <h3>さくらGroupとは</h3>
+  <p>愛媛県松山市を拠点に活動する<br>競技ドッジボールチームです。<br>カテゴリーはU-15・U-18・シニア</p>
+  <br><br>
+  <h3>🏆 実績</h3>
+  <div class="achievements">
+    <div class="achievement-card">
+      <div class="achievement-info">2022年度 日本の夜明け杯 U-15</div>
+      <div class="achievement-result">準優勝</div>
+    </div>
+    <div class="achievement-card">
+      <div class="achievement-info">2023年度 四国シニアチャンピオンシップ U-15</div>
+      <div class="achievement-result">ベスト4</div>
+    </div>
+    <div class="achievement-card">
+      <div class="achievement-info">2023年度 愛媛新聞社杯 U-15</div>
+      <div class="achievement-result">優勝</div>
+    </div>
+  </div>
+  
+<br>
+<br>
+
+  <section class="content">
+  <h3>所属選手の出身チーム</h3>
+
+  <br>
+  <!-- U-15 -->
+  <div class="chart-box-horizontal">
+    <div class="chart-title">U-15</div>
+    <div class="chart-inner">
+      <div class="chart-canvas-wrapper">
+        <canvas id="u15Chart"></canvas>
+      </div>
+      <div class="team-info">
+        <div id="u15List" class="team-list"></div>
+        <div id="u15Total" class="total-count"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- シニア -->
+  <div class="chart-box-horizontal">
+    <div class="chart-title">シニア</div>
+    <div class="chart-inner">
+      <div class="chart-canvas-wrapper">
+        <canvas id="seniorChart"></canvas>
+      </div>
+      <div class="team-info">
+        <div id="seniorList" class="team-list"></div>
+        <div id="seniorTotal" class="total-count"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const u15Raw = { labels:['さくらA','余土っ子ファイターズ','生石A','北久米ドリーム','北吉井ボンバーズ','未経験'], data:[3,10,2,1,0,1] };
+const seniorRaw = { labels:['さくらA','余土っ子ファイターズ','生石A','北久米ドリーム','北吉井ボンバーズ','ミラクルボーイズ'], data:[4,4,1,1,2,1] };
+
+function filterZeroTeams(raw){ 
+  const labels = [], data = [];
+  raw.labels.forEach((label,i)=>{ if(raw.data[i]>0){ labels.push(label); data.push(raw.data[i]); } });
+  return {labels,data};
+}
+
+function renderTeamList(containerId, labels, data){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  labels.forEach((label,i)=>{
+    container.innerHTML += `<div>${label} ${data[i]}名</div>`;
+  });
+  const total = data.reduce((a,b)=>a+b,0);
+  document.getElementById(containerId.replace('List','Total')).innerText = `計 ${total}名`;
+}
+
+function createChart(ctx, labels, data){
+  const sum = data.reduce((a,b)=>a+b,0);
+  return new Chart(ctx, {
+    type:'pie',
+    data:{ labels:labels, datasets:[{ data:data, backgroundColor:['#FFD700','#FFB84D','#FFE066','#FFC107','#FF8C00','#B8860B'] }] },
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      aspectRatio:1,
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label:function(context){ return context.parsed + '名'; } } }
+      }
+    },
+    plugins:[{
+      id:'percentLabel',
+      afterDraw(chart){
+        const {ctx, chartArea:{width,height}} = chart;
+        const radius = Math.min(width,height)/2*0.8;
+        const centerX = width/2;
+        const centerY = height/2;
+        const dataset = chart.data.datasets[0];
+        let startAngle = -0.5*Math.PI;
+        ctx.save(); ctx.fillStyle='#fff'; ctx.font='bold 14px Roboto Slab';
+        dataset.data.forEach((value,i)=>{
+          const sliceAngle = value/sum*2*Math.PI;
+          const angle = startAngle + sliceAngle/2;
+          const x = centerX + Math.cos(angle)*radius*0.6;
+          const y = centerY + Math.sin(angle)*radius*0.6;
+          ctx.fillText((value/sum*100).toFixed(1)+'%', x-10, y+5);
+          startAngle += sliceAngle;
+        });
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+const u15 = filterZeroTeams(u15Raw);
+const senior = filterZeroTeams(seniorRaw);
+
+renderTeamList('u15List', u15.labels, u15.data);
+renderTeamList('seniorList', senior.labels, senior.data);
+
+createChart(document.getElementById('u15Chart').getContext('2d'), u15.labels, u15.data);
+createChart(document.getElementById('seniorChart').getContext('2d'), senior.labels, senior.data);
+</script>
+
+<style>
+.chart-box-horizontal {
+  background:#202020; 
+  border:3px solid #FFD700; 
+  border-radius:16px; 
+  padding:12px; 
+  margin-bottom:15px;
+  max-width:800px; 
+  margin-left:auto; 
+  margin-right:auto; 
+  box-sizing:border-box;
+  /* 光る枠 */
+  box-shadow: 0 0 12px 2px rgba(255,215,0,0.6), 0 0 20px 4px rgba(255,215,0,0.3) inset;
+  transition: box-shadow 0.3s ease;
+}
+.chart-box-horizontal:hover {
+  box-shadow: 0 0 20px 4px rgba(255,215,0,0.8), 0 0 28px 6px rgba(255,215,0,0.4) inset;
+}
+
+.chart-title { 
+  font-family:'Cinzel', serif; 
+  font-size:20px; 
+  color:#FFD700; 
+  margin-bottom:10px; 
+  text-align:center; 
+}
+.chart-inner { 
+  display:flex; 
+  flex-wrap:nowrap; 
+  gap:15px; 
+  align-items:center; 
+  justify-content:center; 
+}
+.chart-canvas-wrapper { 
+  flex:0 0 180px; 
+  width:180px; 
+  height:180px; 
+}
+canvas { 
+  width:100% !important; 
+  height:100% !important; 
+}
+.team-info { 
+  flex:1; 
+  display:flex; 
+  flex-direction:column; 
+  justify-content:center; 
+}
+.team-list { 
+  font-family:'Roboto Slab', serif; 
+  font-size:17px; 
+  line-height:1.5; 
+  text-align:left; 
+}
+.total-count { 
+  color:#FFD700; 
+  text-align:center; 
+  font-weight:700; 
+  margin-top:8px; 
+  font-size:20px; 
+}
+
+/* スマホ対応 */
+@media(max-width:700px){
+  .chart-inner { flex-direction:column; gap:10px; align-items:center; }
+  .chart-canvas-wrapper { width:200px; height:200px; }
+}
+</style>
+
+
+<style>
+.chart-box-horizontal {
+  background:#202020; 
+  border:3px solid #FFD700; 
+  border-radius:16px; 
+  padding:15px; 
+  margin-bottom:20px;
+  box-sizing:border-box;
+}
+.chart-title { 
+  font-family:'Cinzel', serif; 
+  font-size:20px; 
+  color:#FFD700; 
+  margin-bottom:10px; 
+  text-align:center; 
+}
+.chart-inner { 
+  display:flex; 
+  flex-wrap:nowrap; 
+  gap:20px; 
+  align-items:center; 
+  justify-content:flex-start; 
+}
+.chart-canvas-wrapper { 
+  flex:0 0 200px; 
+  width:200px; 
+  height:200px; 
+}
+canvas { 
+  width:100% !important; 
+  height:100% !important; 
+}
+.team-info { 
+  flex:1; 
+  display:flex; 
+  flex-direction:column; 
+  justify-content:center; 
+}
+.team-list { 
+  font-family:'Roboto Slab', serif; 
+  font-size:15px; 
+  line-height:1.5; 
+  text-align:left; 
+}
+.total-count { 
+  color:#FFD700; 
+  text-align:center; 
+  font-weight:700; 
+  margin-top:8px; 
+  font-size:18px; 
+}
+
+/* スマホ対応 */
+@media(max-width:700px){
+  .chart-inner { flex-direction:column; gap:10px; align-items:center; }
+  .chart-canvas-wrapper { width:200px; height:200px; }
+}
+</style>
+
+
+
+<br>
+<br>
+  <!-- ギャラリー -->
+  <h3>📸 ギャラリー</h3>
+  <div class="slider-container">
+    <div class="slider">
+      <div class="slide active">
+        <img src="IMG_2617.JPG" alt="2023年度四国シニアチャンピオンシップ">
+        <div class="caption">2023年度四国シニアチャンピオンシップ</div>
+      </div>
+        <div class="slide">
+        <img src="IMG_1323.jpg" alt="2023年度檀紙神鷲Next Challenge Cup">
+        <div class="caption">2023年度檀紙神鷲Next Challenge Cup</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_1322.jpg" alt="2023年度愛媛新聞社杯">
+        <div class="caption">2023年度愛媛新聞社杯</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_2986_Original.JPG" alt="2023年度日本の夜明け杯">
+        <div class="caption">2023年度日本の夜明け杯</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_8342.JPG" alt="2024年度四国シニアチャンピオンシップ">
+        <div class="caption">2024年度四国シニアチャンピオンシップ</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_3420.JPG" alt="2025年度練習試合">
+        <div class="caption">2025年度練習試合</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_8553.JPG" alt="2025年度四国シニアチャンピオンシップ">
+        <div class="caption">2025年度四国シニアチャンピオンシップ</div>
+      </div>
+      <div class="slide">
+        <img src="02E5D201-1A7D-404E-B55F-EBAF992FB28E.JPEG" alt="2025年度檀紙神鷲Next Challenge Cup">
+        <div class="caption">2025年度檀紙神鷲Next Challenge Cup</div>
+      </div>
+      
+    </div>
+    <button class="prev">&#10094;</button>
+    <button class="next">&#10095;</button>
+  </div>
+</section>
+
+<section class="content fade-up" id="sponsor-recruitment">
+    <h3>🏆 スポンサーシップ パートナー募集</h3>
+    <div class="sponsor-main-container">
+        <p class="sponsor-intro">
+            愛媛県で活動を行っている「さくらGroup」は、<br>選手の年間ウェア費用負担ゼロを目指し、ご協力いただける企業様を募集しております。
+        </p>
+        
+        <div class="activity-summary" style="margin: 20px 0; padding: 15px; background-color: #333; border-radius: 8px;">
+            <h4 style="color:#ffd700; margin-top:0;">🌟 協賛の具体的な貢献度</h4>
+            <p style="color:#fff; font-size:1.0em;">
+                貴社の支援は、保護者様が負担するべき選手一人あたりの年間ウェア代金、<br>
+                約4万円相当を全額カバーし、子供たちが経済的な心配なく競技に専念できる環境を創出します。
+            </p>
+        </div>
+
+        <h4 class="sponsor-subtitle">🛡️ ご提案プラン概要 (年間協賛金)</h4>
+
+        <p style="color:#ffcc00;font-weight:700;margin-bottom:20px;font-size:1.1em;">
+            💡 全プラン共通:<br>公式サイト、SNSでの企業名掲載と活動紹介を実施いたします。
+        </p>
+        
+        <div class="sponsor-grid">
+            
+            <div class="sponsor-card gold">
+                <div class="rank">🥇</div>
+                <div class="plan-name">メイン：ユニフォーム S</div>
+                <div class="value">年間協賛金 390,000円</div>
+                <div class="description">
+                    【広告露出部位（独占）】<br>
+                    公式・サブユニフォームへ掲載。（JDBA規定内）
+                </div>
+            </div>
+
+            <div class="sponsor-card silver">
+                <div class="rank">🥈</div>
+                <div class="plan-name">オフィシャル ジャージ S</div>
+                <div class="value">年間協賛金 375,000円</div>
+                <div class="description">
+                    【広告露出部位（独占）】<br>
+                    ジャージ上（胸元、背面上部）および下への掲載。
+                </div>
+            </div>
+            
+            <div class="sponsor-card bronze">
+                <div class="rank">🥉</div>
+                <div class="plan-name">オフィシャルウェア S</div>
+                <div class="value">年間協賛金 350,000円</div>
+                <div class="description">
+                    【広告露出部位（独占）】<br>
+                    選手・保護者着用ポロシャツへの掲載。
+                </div>
+            </div>
+            
+            <div class="sponsor-card bronze">
+                <div class="rank">🏅</div>
+                <div class="plan-name">トレーニングウェア S</div>
+                <div class="value">年間協賛金 290,000円</div>
+                <div class="description">
+                    【広告露出部位（独占）】<br>
+                    練習着Tシャツへの掲載。
+                </div>
+            </div>
+            
+            <div class="sponsor-card support">
+                <div class="rank">🛠️</div>
+                <div class="plan-name">プレイヤーサポート S</div>
+                <div class="value">年間協賛金 115,000円</div>
+                <div class="description">
+                    【広告露出部位（独占）】<br>
+                    タオル、練習用ボール（名入れ）への掲載。
+                </div>
+            </div>
+
+        </div>
+
+        <div class="reporting-promise">
+            <h4 style="color:#ffd700;margin-top:30px;font-family:'Roboto Slab', serif;font-size:20px;">
+                ✅ 契約の透明性に関する重要なお約束
+            </h4>
+            <p style="color:#ccc;font-size:1.0em;line-height:1.6;">
+                ご協賛金の使途（約80%が物品購入に充当）や契約期間、途中解約、中途入部者への対応など、全ての重要事項は提案書に明記しております。透明性を最優先し、貴社との長期的なパートナーシップを構築いたします。
+            </p>
+        </div>
+
+
+        <p class="contact-note">
+            詳細な物品内訳、契約の特別合意事項、広告効果の強みについては、以下の資料をダウンロードしてご確認ください。
+        </p>
+
+        <a href="mailto:sakuragroup20232023@gmail.com" class="form-button contact-sponsor-btn">
+            スポンサーシップに関するお問い合わせ
+        </a>
+        <p style="margin-top: 30px; font-size: 1.1em; font-weight: bold;">
+            詳細な資料（PDF）はこちらからダウンロードいただけます：
+        </p>
+        <a href="sakura_sponsor_2026.pdf" download class="pdf-download-button">
+            📥 スポンサーシップ提案書 (PDFダウンロード)
+        </a>
+    </div>
+</section>
+
+<style>
+/* PDFダウンロードボタンのスタイル例 */
+.pdf-download-button {
+    display: inline-block;
+    padding: 12px 30px;
+    background-color: #ffcc00;
+    color: rgb(0, 0, 0) !important;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 700;
+    margin-top: 15px;
+    transition: background-color 0.3s;
+}
+
+.pdf-download-button:hover {
+    background-color: #ffd700;
+}
+</style>
+
+<section class="content fade-up">
+  <h3>🗓️スケジュール</h3>
+  <div class="accordion" id="scheduleAccordion">
+    <div class="accordion-header">スケジュールを開く</div>
+    <div class="accordion-content">
+      <iframe 
+        src="https://calendar.google.com/calendar/embed?height=430&wkst=2&ctz=Asia%2FTokyo&showPrint=0&mode=AGENDA&showNav=0&showTz=0&title=%E3%81%95%E3%81%8F%E3%82%89Group%20%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB&src=c2FrdXJhZ3JvdXAyMDIzMjAyM0BnbWFpbC5jb20&col5" 
+        width="100%" 
+        height="700" 
+        frameborder="0" 
+        marginheight="0" 
+        marginwidth="0"
+        allowfullscreen>
+        読み込んでいます…
+      </iframe>
+      <a href="https://calendar.google.com/calendar/embed?height=430&wkst=2&ctz=Asia%2FTokyo&showPrint=0&mode=AGENDA&showNav=0&showTz=0&title=%E3%81%95%E3%81%8F%E3%82%89Group%20%E3%82%B9%E3%82%B1%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB&src=c2FrdXJhZ3JvdXAyMDIzMjAyM0BnbWFpbC5jb20&col5" target="_blank" class="form-button">別タブで開く</a>
+    </div>
+  </div>
+</section>
+
+
+
+
+<style>
+.schedule-section {
+  text-align: center;
+  margin: 20px auto;
+  max-width: 900px;
+}
+
+#toggleCalendar {
+  padding: 10px 20px;
+  background: linear-gradient(45deg, #FFD700, #FFB84D);
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  color: #202020;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+#toggleCalendar:hover {
+  filter: brightness(1.1);
+}
+
+.calendar-container {
+  margin-top: 20px;
+  display: none; /* 最初は非表示 */
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.calendar-container iframe {
+  width: 100%;
+  height: 430px;
+  border: none;
+}
+</style>
+
+
+
+
+<!-- 📝 部員募集フォーム -->
+<section class="content fade-up">
+  <h3>📝 部員募集</h3>
+  <div class="accordion" id="recruitAccordion">
+    <div class="accordion-header">クリックで応募フォームを開く</div>
+    <div class="accordion-content">
+      <iframe 
+        src="https://docs.google.com/forms/d/e/1FAIpQLSdSU0a4Ll6uSLcMom1whrWKhjy6ZTfS_pod8HE5hiP893ll0g/viewform?usp=share_link&ouid=105772722277378905466" 
+        width="100%" 
+        height="700" 
+        frameborder="0" 
+        marginheight="0" 
+        marginwidth="0"
+        allowfullscreen>
+        読み込んでいます…
+      </iframe>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSdSU0a4Ll6uSLcMom1whrWKhjy6ZTfS_pod8HE5hiP893ll0g/viewform?usp=share_link&ouid=105772722277378905466" target="_blank" class="form-button">別タブで開く</a>
+    </div>
+  </div>
+</section>
+
+<style>
+.accordion {
+  max-width: 800px;
+  margin: 60px auto;
+  background: #202020;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(255,215,0,0.3);
+  overflow: hidden;
+}
+.accordion-header {
+  background: #b8860b;
+  color: #111;
+  cursor: pointer;
+  padding: 18px;
+  font-family: 'Roboto Slab', serif;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  transition: 0.3s;
+}
+.accordion-header:hover {
+  background: #ffd700;
+}
+.accordion-content {
+  display: none;
+  background: #111;
+}
+.accordion-content iframe {
+  width: 100%;
+  height: 700px;
+  border: none;
+  display: block;
+}
+.open .accordion-content {
+  display: block;
+}
+.form-button {
+  display: block;
+  margin: 15px auto 25px;
+  padding: 10px 20px;
+  background: linear-gradient(45deg, #ffd700, #b8860b);
+  color: #111;
+  font-weight: 700;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: 0.3s;
+  font-family: 'Roboto Slab', serif;
+}
+.form-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(255,215,0,0.5);
+}
+</style>
+
+
+
+<style>
+.sponsor-main-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #1a1a1a;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    text-align: center;
+}
+.sponsor-intro {
+    font-family: 'Roboto Slab', sans-serif;
+    font-size: 1.1em;
+    line-height: 1.7;
+    margin-bottom: 30px;
+    color: #ddd;
+}
+.sponsor-subtitle {
+    font-family: 'Cinzel', serif;
+    font-size: 24px;
+    color: #ffd700;
+    margin-bottom: 25px;
+    border-bottom: 2px dashed #b8860b;
+    display: inline-block;
+    padding-bottom: 5px;
+}
+
+.sponsor-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+.sponsor-card {
+    background: #202020;
+    border-radius: 10px;
+    padding: 20px;
+    width: calc(33.33% - 14px);
+    min-width: 280px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;
+}
+.sponsor-card:hover {
+    transform: translateY(-5px);
+}
+
+.sponsor-card.gold { border-top: 5px solid #ffd700; }
+.sponsor-card.silver { border-top: 5px solid #c0c0c0; }
+.sponsor-card.bronze { border-top: 5px solid #cd7f32; }
+.sponsor-card.support { border-top: 5px solid #888; }
+
+
+.sponsor-card .rank {
+    font-family: 'Cinzel', serif;
+    font-size: 2.2em;
+    color: #ffd700;
+    margin-bottom: 5px;
+}
+.sponsor-card.silver .rank { color: #c0c0c0; }
+.sponsor-card.bronze .rank { color: #cd7f32; }
+.sponsor-card.support .rank { color: #888; }
+
+.sponsor-card .plan-name {
+    font-family: 'Roboto Slab', serif;
+    font-size: 1.3em;
+    font-weight: 700;
+    color: #f5e6b1;
+    margin-bottom: 8px;
+}
+.sponsor-card .value {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1em;
+    color: #ffd700;
+    margin-bottom: 12px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #444;
+}
+.sponsor-card .description {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.95em;
+    color: #bbb;
+    line-height: 1.5;
+    min-height: 55px;
+}
+
+.contact-note {
+    margin-top: 30px;
+    font-size: 0.9em;
+    color: #aaa;
+}
+.contact-sponsor-btn {
+    margin-top: 20px;
+    padding: 12px 25px !important;
+    background: linear-gradient(45deg, #FFD700, #B8860B) !important;
+    color: #111 !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    text-decoration: none !important;
+    display: inline-block;
+}
+
+.reporting-promise {
+    border: 1px solid #d4af37;
+    background-color: #282828;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 30px;
+}
+
+/* スマホ対応 */
+@media(max-width: 950px) {
+    .sponsor-card {
+        width: calc(50% - 15px);
+    }
+}
+@media(max-width: 650px) {
+    .sponsor-card {
+        width: 100%;
+    }
+}
+</style>
+
+  <script>
+    document.querySelectorAll('.accordion').forEach(acc => {
+      const header = acc.querySelector('.accordion-header');
+      header.addEventListener('click', () => {
+        acc.classList.toggle('open');
+      });
+    });
+  </script>
+
+
+
+<footer>&copy; 2025 さくらGroup.</footer>
+<button id="toTop">トップへ戻る</button>
+
+<script>
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{
+    const loading = document.getElementById('loading');
+    loading.style.opacity = '0';
+    setTimeout(()=>{ loading.style.display = 'none'; }, 800);
+  }, 3000);
+});
+
+const slides=document.querySelectorAll('.hero img'); let current=0;
+setInterval(()=>{ slides[current].classList.remove('active'); current=(current+1)%slides.length; slides[current].classList.add('active'); },5000);
+
+document.getElementById('hamburger').addEventListener('click', ()=>{ document.getElementById('sideMenu').style.left='0'; });
+document.getElementById('closeMenu').addEventListener('click', ()=>{ document.getElementById('sideMenu').style.left='-250px'; });
+
+function checkPassword(url){ 
+  let pw=prompt("パスワードを入力してください"); 
+  if(pw==='2023'){ window.location.href=url; } 
+  else if(pw!==null){ alert("パスワードが違います"); } 
+}
+
+
+
+const toTop = document.getElementById('toTop');
+window.addEventListener('scroll', () => { if(window.scrollY>300){toTop.classList.add('show');} else{toTop.classList.remove('show');} });
+toTop.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+const fadeElems=document.querySelectorAll('.fade-up'); 
+const observer=new IntersectionObserver(entries=>{ entries.forEach(entry=>{ if(entry.isIntersecting){ entry.target.classList.add('show'); } }); }, {threshold:0.2}); 
+fadeElems.forEach(el=>observer.observe(el));
+
+// ギャラリー
+const slider = document.querySelector('.slider');
+const slideItems = document.querySelectorAll('.slide');
+const prevBtn = document.querySelector('.prev');
+const nextBtn = document.querySelector('.next');
+let currentIndex = 0;
+
+function showSlide(index){
+  if(index<0) index = slideItems.length-1;
+  if(index>=slideItems.length) index=0;
+  slider.style.transform = `translateX(-${index*100}%)`;
+  currentIndex=index;
+}
+
+prevBtn.addEventListener('click', ()=>{ showSlide(currentIndex-1); });
+nextBtn.addEventListener('click', ()=>{ showSlide(currentIndex+1); });
+
+// スワイプ対応
+let startX=0,endX=0;
+slider.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; });
+slider.addEventListener('touchmove', e=>{ endX=e.touches[0].clientX; });
+slider.addEventListener('touchend', e=>{ if(startX-endX>50) showSlide(currentIndex+1); if(endX-startX>50) showSlide(currentIndex-1); });
+</script>
+
+</body>
+</html>

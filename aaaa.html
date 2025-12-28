@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>さくらGroup - Dodgeball Team</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Roboto+Slab:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Noto Sans JP", sans-serif; background-color:#121212; color:#f5e6b1; overflow-x:hidden; }
+
+#loading {
+  position: fixed; top:0; left:0;
+  width:100%; height:100%;
+  background:#000;
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  z-index:999; overflow:hidden;
+}
+
+.loading-text {
+  position: relative;
+  font-family: 'Cinzel', serif;
+  font-size: 46px;
+  letter-spacing: 3px;
+  color: #ffd700;
+  display: inline-block;
+  overflow: hidden;
+}
+.loading-text span {
+  opacity: 0; display: inline-block; transform: translateY(10px);
+  animation: fadeInUp 0.5s forwards;
+}
+.loading-text span:nth-child(1) { animation-delay: 0s; }
+.loading-text span:nth-child(2) { animation-delay: 0.1s; }
+.loading-text span:nth-child(3) { animation-delay: 0.2s; }
+.loading-text span:nth-child(4) { animation-delay: 0.3s; }
+.loading-text span:nth-child(5) { animation-delay: 0.4s; }
+.loading-text span:nth-child(6) { animation-delay: 0.5s; }
+.loading-text span:nth-child(7) { animation-delay: 0.6s; }
+.loading-text span:nth-child(8) { animation-delay: 0.7s; }
+
+@keyframes fadeInUp { to { opacity:1; transform:translateY(0); } }
+
+.underline-light {
+  position: absolute; bottom:0; left:-100%; width:70%; height:4px;
+  border-radius:8px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 215, 0, 0.3) 25%, rgba(255, 240, 120, 0.9) 50%, rgba(255, 215, 0, 0.3) 75%, transparent 100%);
+  animation: underlineShine 3s ease-in-out 1s forwards;
+}
+@keyframes underlineShine { 0%{left:-70%}50%{left:100%}100%{left:100%} }
+
+.loading-sub { font-family:'Roboto Slab', serif; font-size:18px; color:#bfa86a; margin-top:12px; opacity:0; animation: fadeIn 1.5s ease 2s forwards; }
+@keyframes fadeIn { to { opacity:1; } }
+
+header { width:100%; padding:20px 40px; display:flex; justify-content:center; align-items:center; background-color:#111; border-bottom:2px solid #d4af37; position:sticky; top:0; z-index:10; }
+header h1 { font-family:'Cinzel', serif; font-size:30px; color:#ffd700; letter-spacing:2px; }
+.hamburger { display:flex; flex-direction:column; gap:5px; cursor:pointer; position:absolute; top:33px; left:25px; z-index:20; }
+.hamburger div { width:30px; height:4px; background:#ffd700; transition:0.3s; }
+
+#sideMenu {
+  position: fixed; top:0; left:-250px; width:250px; height:100vh;
+  background: #1a1a1a; z-index: 1000; display:flex; flex-direction:column; padding:60px 20px 20px 20px; gap:20px; transition:0.3s;
+}
+#sideMenu a { color:#f5e6b1; text-decoration:none; font-weight:700; font-size:18px; font-family:'Roboto Slab', serif; }
+#sideMenu a:hover { color:#ffd700; }
+#closeMenu { position:absolute; top:15px; right:15px; font-size:22px; font-weight:700; color:#ffd700; cursor:pointer; z-index:1001; }
+
+.hero { width:100vw; height:80vh; position:relative; overflow:hidden; }
+.hero img { width:100%; height:100%; object-fit:cover; object-position:center; position:absolute; top:0; left:0; opacity:0; transition:opacity 2s ease-in-out; }
+.hero img.active { opacity:1; }
+.overlay { position:absolute; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.55); z-index:1; }
+.hero-content { position:relative; z-index:2; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:0 20px; }
+.hero h2 { font-family:'Cinzel', serif; font-size:58px; color:#ffd700; margin-bottom:40px; text-shadow:2px 2px 12px #b8860b; letter-spacing:3px; }
+.buttons { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+.buttons a { padding:15px 30px; background:linear-gradient(45deg, #ffd700, #b8860b); color:#111; font-weight:700; border-radius:8px; text-decoration:none; font-family:'Roboto Slab', serif; letter-spacing:1px; transition:0.3s; }
+.buttons a:hover { transform:translateY(-3px); box-shadow:0 5px 15px rgba(255,215,0,0.5); }
+
+section.content { padding:60px 20px; text-align:center; background-color:#111; }
+section.content h3 { color:#ffd700; font-size:32px; margin-bottom:20px; font-family:'Cinzel', serif; text-shadow:1px 1px 5px #000; letter-spacing:1px; }
+section.content p { color:#ddd; max-width:800px; margin:0 auto; line-height:1.8; font-family:'Roboto Slab', serif; font-size:18px; }
+
+.achievements { margin-top:30px; display:flex; flex-direction:column; gap:20px; max-width:800px; margin-left:auto; margin-right:auto; }
+.achievement-card { background:#202020; border:1px solid #444; border-radius:10px; padding:18px; display:block; text-align:center; box-shadow:0 0 15px rgba(212,175,55,0.3); transition:0.3s; }
+.achievement-card:hover { transform:scale(1.02); box-shadow:0 0 20px rgba(255,215,0,0.5); }
+.achievement-info { font-family:'Roboto Slab', serif; font-size:20px; color:#f5e6b1; margin-bottom:8px; font-weight:700; letter-spacing:1px; }
+.achievement-result { font-family:'Cinzel', serif; font-size:32px; font-weight:700; color:#ffd700; text-shadow:0 0 10px #b8860b; letter-spacing:1px; }
+
+@media(max-width:480px){
+  .achievement-card { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:12px 15px; }
+  .achievement-info { font-size:16px; text-align:center; }
+  .achievement-result { font-size:22px; }
+  .hero h2 { font-size:36px; }
+  section.content h3 { font-size:26px; }
+  section.content p { font-size:16px; }
+}
+
+#toTop {
+  position: fixed; bottom: 30px; right: 30px; padding: 12px 18px; font-size: 16px;
+  background: linear-gradient(45deg, #ffd700, #b8860b); color: #111; border: none; border-radius: 6px; cursor: pointer; opacity: 0; visibility: hidden; transition: all 0.4s ease; z-index: 50; font-family: 'Roboto Slab', serif; font-weight: 700;
+}
+#toTop.show { opacity: 1; visibility: visible; }
+
+.fade-up { opacity:0; transform:translateY(20px); transition:all 0.8s ease; }
+.fade-up.show { opacity:1; transform:translateY(0); }
+footer { text-align:center; padding:20px; font-size:14px; color:#888; background-color:#111; border-top:2px solid #ffd700; font-family:'Roboto Slab', serif; }
+
+/* スライダー用 */
+.slider-container { position: relative; max-width: 900px; margin: 30px auto; overflow: hidden; border-radius: 12px; background: #202020; box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+.slider { display: flex; transition: transform 0.4s ease-in-out; }
+.slide { min-width: 100%; position: relative; text-align: center; }
+.slide img { width: 100%; height: 400px; object-fit: cover; display: block; }
+.caption { position: absolute; bottom: 10px; width: 100%; text-align: center; font-family: 'Roboto Slab', serif; font-size: 16px; color: #ffd700; background: rgba(0,0,0,0.4); padding: 6px 0; }
+.prev, .next { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,215,0,0.7); border: none; color: #111; font-size: 28px; padding: 8px 14px; cursor: pointer; border-radius: 50%; transition: 0.3s; }
+.prev:hover, .next:hover { background: rgba(255,215,0,1); }
+.prev { left: 10px; } .next { right: 10px; }
+
+@media(max-width:480px){ .slide img { height: 200px; } .caption { font-size: 14px; } }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-text">
+    <span>さ</span><span>く</span><span>ら</span><span>G</span><span>r</span><span>o</span><span>u</span><span>p</span>
+    <div class="underline-light"></div>
+  </div>
+  <div class="loading-sub">Loading...</div>
+</div>
+
+<header>
+  <h1>さくらGroup</h1>
+  <div class="hamburger" id="hamburger"><div></div><div></div><div></div></div>
+</header>
+
+<div id="sideMenu">
+  <div id="closeMenu">✕</div>
+  <a href="match.html">試合記録</a>
+  <a href="https://instagram.com/">Instagram</a>
+  <a href="#" onclick="checkPassword('https://huuka1419.stars.ne.jp/testindex.html')">選手能力評価</a>
+  <a href="#" onclick="checkPassword('manegement.html')">マネジメントページ</a>
+</div>
+
+<section class="hero">
+  <img src="1686A1F6-735E-496C-A783-A8441EE57804.JPEG" class="active" alt="集合写真1">
+  <img src="IMG_5337 2.JPG" alt="集合写真2">
+  <div class="overlay"></div>
+  <div class="hero-content">
+    <h2>さくらGroup</h2>
+    <div class="buttons">
+      <a href="match.html">試合記録</a>
+      <a href="https://www.instagram.com/sakura.group2023?igsh=MXVlcHI1bm4zc3V3Mg==">Instagram</a>
+    </div>
+  </div>
+</section>
+
+<section class="content fade-up">
+  <h3>さくらGroupとは</h3>
+  <p>愛媛県松山市を拠点に活動する<br>競技ドッジボールチームです。<br>カテゴリーはU-15・U-18・シニア</p>
+  <br><br>
+  <h3>🏆 実績</h3>
+  <div class="achievements">
+    <div class="achievement-card">
+      <div class="achievement-info">2022年度 日本の夜明け杯 U-15</div>
+      <div class="achievement-result">準優勝</div>
+    </div>
+    <div class="achievement-card">
+      <div class="achievement-info">2023年度 四国シニアチャンピオンシップ U-15</div>
+      <div class="achievement-result">ベスト4</div>
+    </div>
+    <div class="achievement-card">
+      <div class="achievement-info">2023年度 愛媛新聞社杯 U-15</div>
+      <div class="achievement-result">優勝</div>
+    </div>
+  </div>
+  
+  <section class="content">
+  <h3>所属選手の出身チーム</h3>
+
+  <!-- U-15 -->
+  <div class="chart-box-horizontal">
+    <div class="chart-title">U-15</div>
+    <div class="chart-inner">
+      <div class="chart-canvas-wrapper">
+        <canvas id="u15Chart"></canvas>
+      </div>
+      <div class="team-info">
+        <div id="u15List" class="team-list"></div>
+        <div id="u15Total" class="total-count"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- シニア -->
+  <div class="chart-box-horizontal">
+    <div class="chart-title">シニア</div>
+    <div class="chart-inner">
+      <div class="chart-canvas-wrapper">
+        <canvas id="seniorChart"></canvas>
+      </div>
+      <div class="team-info">
+        <div id="seniorList" class="team-list"></div>
+        <div id="seniorTotal" class="total-count"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const u15Raw = { labels:['さくらA','余土っ子ファイターズ','生石A','北久米ドリーム','北吉井ボンバーズ','未経験'], data:[3,10,2,1,0,1] };
+const seniorRaw = { labels:['さくらA','余土っ子ファイターズ','生石A','北久米ドリーム','北吉井ボンバーズ','ミラクルボーイズ'], data:[4,4,1,1,2,1] };
+
+function filterZeroTeams(raw){ 
+  const labels = [], data = [];
+  raw.labels.forEach((label,i)=>{ if(raw.data[i]>0){ labels.push(label); data.push(raw.data[i]); } });
+  return {labels,data};
+}
+
+function renderTeamList(containerId, labels, data){
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  labels.forEach((label,i)=>{
+    container.innerHTML += `<div>${label} ${data[i]}名</div>`;
+  });
+  const total = data.reduce((a,b)=>a+b,0);
+  document.getElementById(containerId.replace('List','Total')).innerText = `計 ${total}名`;
+}
+
+function createChart(ctx, labels, data){
+  const sum = data.reduce((a,b)=>a+b,0);
+  return new Chart(ctx, {
+    type:'pie',
+    data:{ labels:labels, datasets:[{ data:data, backgroundColor:['#FFD700','#FFB84D','#FFE066','#FFC107','#FF8C00','#B8860B'] }] },
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      aspectRatio:1,
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label:function(context){ return context.parsed + '名'; } } }
+      }
+    },
+    plugins:[{
+      id:'percentLabel',
+      afterDraw(chart){
+        const {ctx, chartArea:{width,height}} = chart;
+        const radius = Math.min(width,height)/2*0.8;
+        const centerX = width/2;
+        const centerY = height/2;
+        const dataset = chart.data.datasets[0];
+        let startAngle = -0.5*Math.PI;
+        ctx.save(); ctx.fillStyle='#fff'; ctx.font='bold 14px Roboto Slab';
+        dataset.data.forEach((value,i)=>{
+          const sliceAngle = value/sum*2*Math.PI;
+          const angle = startAngle + sliceAngle/2;
+          const x = centerX + Math.cos(angle)*radius*0.6;
+          const y = centerY + Math.sin(angle)*radius*0.6;
+          ctx.fillText((value/sum*100).toFixed(1)+'%', x-10, y+5);
+          startAngle += sliceAngle;
+        });
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+const u15 = filterZeroTeams(u15Raw);
+const senior = filterZeroTeams(seniorRaw);
+
+renderTeamList('u15List', u15.labels, u15.data);
+renderTeamList('seniorList', senior.labels, senior.data);
+
+createChart(document.getElementById('u15Chart').getContext('2d'), u15.labels, u15.data);
+createChart(document.getElementById('seniorChart').getContext('2d'), senior.labels, senior.data);
+</script>
+
+<style>
+.chart-box-horizontal {
+  background:#202020; 
+  border:3px solid #FFD700; 
+  border-radius:16px; 
+  padding:12px; 
+  margin-bottom:15px;
+  max-width:800px; 
+  margin-left:auto; 
+  margin-right:auto; 
+  box-sizing:border-box;
+  /* 光る枠 */
+  box-shadow: 0 0 12px 2px rgba(255,215,0,0.6), 0 0 20px 4px rgba(255,215,0,0.3) inset;
+  transition: box-shadow 0.3s ease;
+}
+.chart-box-horizontal:hover {
+  box-shadow: 0 0 20px 4px rgba(255,215,0,0.8), 0 0 28px 6px rgba(255,215,0,0.4) inset;
+}
+
+.chart-title { 
+  font-family:'Cinzel', serif; 
+  font-size:20px; 
+  color:#FFD700; 
+  margin-bottom:10px; 
+  text-align:center; 
+}
+.chart-inner { 
+  display:flex; 
+  flex-wrap:nowrap; 
+  gap:15px; 
+  align-items:center; 
+  justify-content:center; 
+}
+.chart-canvas-wrapper { 
+  flex:0 0 180px; 
+  width:180px; 
+  height:180px; 
+}
+canvas { 
+  width:100% !important; 
+  height:100% !important; 
+}
+.team-info { 
+  flex:1; 
+  display:flex; 
+  flex-direction:column; 
+  justify-content:center; 
+}
+.team-list { 
+  font-family:'Roboto Slab', serif; 
+  font-size:17px; 
+  line-height:1.5; 
+  text-align:left; 
+}
+.total-count { 
+  color:#FFD700; 
+  text-align:center; 
+  font-weight:700; 
+  margin-top:8px; 
+  font-size:20px; 
+}
+
+/* スマホ対応 */
+@media(max-width:700px){
+  .chart-inner { flex-direction:column; gap:10px; align-items:center; }
+  .chart-canvas-wrapper { width:200px; height:200px; }
+}
+</style>
+
+
+<style>
+.chart-box-horizontal {
+  background:#202020; 
+  border:3px solid #FFD700; 
+  border-radius:16px; 
+  padding:15px; 
+  margin-bottom:20px;
+  box-sizing:border-box;
+}
+.chart-title { 
+  font-family:'Cinzel', serif; 
+  font-size:20px; 
+  color:#FFD700; 
+  margin-bottom:10px; 
+  text-align:center; 
+}
+.chart-inner { 
+  display:flex; 
+  flex-wrap:nowrap; 
+  gap:20px; 
+  align-items:center; 
+  justify-content:flex-start; 
+}
+.chart-canvas-wrapper { 
+  flex:0 0 200px; 
+  width:200px; 
+  height:200px; 
+}
+canvas { 
+  width:100% !important; 
+  height:100% !important; 
+}
+.team-info { 
+  flex:1; 
+  display:flex; 
+  flex-direction:column; 
+  justify-content:center; 
+}
+.team-list { 
+  font-family:'Roboto Slab', serif; 
+  font-size:15px; 
+  line-height:1.5; 
+  text-align:left; 
+}
+.total-count { 
+  color:#FFD700; 
+  text-align:center; 
+  font-weight:700; 
+  margin-top:8px; 
+  font-size:18px; 
+}
+
+/* スマホ対応 */
+@media(max-width:700px){
+  .chart-inner { flex-direction:column; gap:10px; align-items:center; }
+  .chart-canvas-wrapper { width:200px; height:200px; }
+}
+</style>
+
+
+
+<br>
+<br>
+  <!-- ギャラリー -->
+  <h3>📸 ギャラリー</h3>
+  <div class="slider-container">
+    <div class="slider">
+      <div class="slide active">
+        <img src="IMG_2617.JPG" alt="2023年度四国シニアチャンピオンシップ">
+        <div class="caption">2023年度四国シニアチャンピオンシップ</div>
+      </div>
+        <div class="slide">
+        <img src="IMG_1323.jpg" alt="2023年度檀紙神鷲Next Challenge Cup">
+        <div class="caption">2023年度檀紙神鷲Next Challenge Cup</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_1322.jpg" alt="2023年度愛媛新聞社杯">
+        <div class="caption">2023年度愛媛新聞社杯</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_2986_Original.JPG" alt="2023年度日本の夜明け杯">
+        <div class="caption">2023年度日本の夜明け杯</div>
+      </div>
+      
+
+
+      <div class="slide">
+        <img src="IMG_8342.JPG" alt="2024年度四国シニアチャンピオンシップ">
+        <div class="caption">2024年度四国シニアチャンピオンシップ</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_3420.JPG" alt="2025年度練習試合">
+        <div class="caption">2025年度練習試合</div>
+      </div>
+      <div class="slide">
+        <img src="IMG_8553.JPG" alt="2025年度四国シニアチャンピオンシップ">
+        <div class="caption">2025年度四国シニアチャンピオンシップ</div>
+      </div>
+      
+    </div>
+    <button class="prev">&#10094;</button>
+    <button class="next">&#10095;</button>
+  </div>
+</section>
+
+<!-- 📝 部員募集フォーム -->
+<section class="content fade-up">
+  <h3>📝 部員募集</h3>
+  <div class="accordion" id="recruitAccordion">
+    <div class="accordion-header">クリックで応募フォームを開く</div>
+    <div class="accordion-content">
+      <iframe 
+        src="https://docs.google.com/forms/d/e/1FAIpQLSdSU0a4Ll6uSLcMom1whrWKhjy6ZTfS_pod8HE5hiP893ll0g/viewform?usp=share_link&ouid=105772722277378905466" 
+        width="100%" 
+        height="700" 
+        frameborder="0" 
+        marginheight="0" 
+        marginwidth="0"
+        allowfullscreen>
+        読み込んでいます…
+      </iframe>
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSdSU0a4Ll6uSLcMom1whrWKhjy6ZTfS_pod8HE5hiP893ll0g/viewform?usp=share_link&ouid=105772722277378905466" target="_blank" class="form-button">別タブで開く</a>
+    </div>
+  </div>
+</section>
+
+<style>
+.accordion {
+  max-width: 800px;
+  margin: 60px auto;
+  background: #202020;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(255,215,0,0.3);
+  overflow: hidden;
+}
+.accordion-header {
+  background: #b8860b;
+  color: #111;
+  cursor: pointer;
+  padding: 18px;
+  font-family: 'Roboto Slab', serif;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  transition: 0.3s;
+}
+.accordion-header:hover {
+  background: #ffd700;
+}
+.accordion-content {
+  display: none;
+  background: #111;
+}
+.accordion-content iframe {
+  width: 100%;
+  height: 700px;
+  border: none;
+  display: block;
+}
+.open .accordion-content {
+  display: block;
+}
+.form-button {
+  display: block;
+  margin: 15px auto 25px;
+  padding: 10px 20px;
+  background: linear-gradient(45deg, #ffd700, #b8860b);
+  color: #111;
+  font-weight: 700;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: 0.3s;
+  font-family: 'Roboto Slab', serif;
+}
+.form-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(255,215,0,0.5);
+}
+</style>
+
+<script>
+// アコーディオン開閉
+const acc = document.getElementById('recruitAccordion');
+acc.querySelector('.accordion-header').addEventListener('click', () => {
+  acc.classList.toggle('open');
+});
+</script>
+
+
+<footer>&copy; 2025 さくらGroup.</footer>
+<button id="toTop">トップへ戻る</button>
+
+<script>
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{
+    const loading = document.getElementById('loading');
+    loading.style.opacity = '0';
+    setTimeout(()=>{ loading.style.display = 'none'; }, 800);
+  }, 3000);
+});
+
+const slides=document.querySelectorAll('.hero img'); let current=0;
+setInterval(()=>{ slides[current].classList.remove('active'); current=(current+1)%slides.length; slides[current].classList.add('active'); },5000);
+
+document.getElementById('hamburger').addEventListener('click', ()=>{ document.getElementById('sideMenu').style.left='0'; });
+document.getElementById('closeMenu').addEventListener('click', ()=>{ document.getElementById('sideMenu').style.left='-250px'; });
+
+function checkPassword(url){ 
+  let pw=prompt("パスワードを入力してください"); 
+  if(pw==='2023'){ window.location.href=url; } 
+  else if(pw!==null){ alert("パスワードが違います"); } 
+}
+
+const toTop = document.getElementById('toTop');
+window.addEventListener('scroll', () => { if(window.scrollY>300){toTop.classList.add('show');} else{toTop.classList.remove('show');} });
+toTop.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+const fadeElems=document.querySelectorAll('.fade-up'); 
+const observer=new IntersectionObserver(entries=>{ entries.forEach(entry=>{ if(entry.isIntersecting){ entry.target.classList.add('show'); } }); }, {threshold:0.2}); 
+fadeElems.forEach(el=>observer.observe(el));
+
+// ギャラリー
+const slider = document.querySelector('.slider');
+const slideItems = document.querySelectorAll('.slide');
+const prevBtn = document.querySelector('.prev');
+const nextBtn = document.querySelector('.next');
+let currentIndex = 0;
+
+function showSlide(index){
+  if(index<0) index = slideItems.length-1;
+  if(index>=slideItems.length) index=0;
+  slider.style.transform = `translateX(-${index*100}%)`;
+  currentIndex=index;
+}
+
+prevBtn.addEventListener('click', ()=>{ showSlide(currentIndex-1); });
+nextBtn.addEventListener('click', ()=>{ showSlide(currentIndex+1); });
+
+// スワイプ対応
+let startX=0,endX=0;
+slider.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; });
+slider.addEventListener('touchmove', e=>{ endX=e.touches[0].clientX; });
+slider.addEventListener('touchend', e=>{ if(startX-endX>50) showSlide(currentIndex+1); if(endX-startX>50) showSlide(currentIndex-1); });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>さくらGroup 大会管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body {font-family:'Poppins',sans-serif;background:#000;color:#d4af37;margin:0;padding:0;}
+header {font-family:'Playfair Display',serif;font-weight:700;text-align:center;padding:20px;font-size:2em;border-bottom:2px solid #FFD700;}
+nav {display:flex;justify-content:center;background:#111;}
+nav button {background:#000;color:#FFD700;border:none;padding:10px 20px;margin:5px;cursor:pointer;border-radius:8px 8px 0 0;font-size:1em;transition:0.3s;}
+nav button.active, nav button:hover {background:#FFD700;color:#000;font-weight:bold;}
+section {display:none;padding:20px;}
+section.active {display:block;}
+input,label {font-family:'Poppins',sans-serif;font-weight:500;margin:5px 0 15px 0;padding:5px;border:none;background:#111;color:#FFD700;border-radius:5px;}
+select.scoreSelect,select.vpgSelect {border:2px solid #FFD700;padding:5px;border-radius:5px;background:#111;color:#FFD700;}
+select:not(.scoreSelect):not(.vpgSelect) {border:1px solid #444;background:#111;color:#FFD700;}
+button.saveBtn {background:linear-gradient(135deg,#d4af37,#bfa135);color:#000;border:none;padding:8px 15px;margin:10px 0;cursor:pointer;border-radius:8px;font-weight:bold;transition:0.3s;}
+button.saveBtn:hover {background:linear-gradient(135deg,#bfa135,#d4af37);}
+.setBox {margin-bottom:10px;padding:10px;border:1px solid #FFD700;border-radius:8px;display:flex;flex-direction:column;}
+.setRow,.vpgRow {display:flex;align-items:center;gap:5px;margin:5px 0;}
+.result {font-weight:bold;margin-top:10px;}
+</style>
+</head>
+<body>
+
+<header>さくらGroup 大会管理</header>
+
+<nav>
+  <button id="tabTeam" class="active">チーム登録</button>
+  <button id="tabTournament">大会登録</button>
+  <button id="tabMatch">試合登録</button>
+</nav>
+
+<section id="sectionTeam" class="active">
+<h2>チーム登録</h2>
+<label>自チーム名: <input type="text" id="myTeamInput" placeholder="例: SAKURA GENESIS"></label>
+<button class="saveBtn" id="saveMyTeamBtn">自チーム登録</button><br>
+<label>敵チーム名: <input type="text" id="opponentTeamInput" placeholder="例: ◯◯クラブ"></label>
+<button class="saveBtn" id="saveOpponentTeamBtn">敵チーム登録</button>
+</section>
+
+<section id="sectionTournament">
+<h2>大会登録</h2>
+<label>年度:
+<select id="yearSelectTournament"></select>
+</label><br>
+<label>大会名: <input type="text" id="tournamentInput" placeholder="例: 四国シニアチャンピオンシップ"></label><br>
+<label>カテゴリー:
+<select id="categorySelect">
+  <option value="U-15">U-15</option>
+  <option value="U-18">U-18</option>
+  <option value="シニア">シニア</option>
+</select>
+</label><br>
+<button class="saveBtn" id="saveTournamentBtn">大会登録</button>
+</section>
+
+<section id="sectionMatch">
+<h2>試合登録</h2>
+<label>年度: <select id="yearSelectMatch"></select></label><br>
+<label>大会: <select id="tournamentSelectMatch"></select></label><br>
+<label>カテゴリー:
+<select id="matchCategorySelect">
+  <option value="U-15">U-15</option>
+  <option value="U-18">U-18</option>
+  <option value="シニア">シニア</option>
+</select>
+</label><br>
+<label>自チーム: <select id="teamASelectMatch"></select></label><br>
+<label>相手チーム: <select id="teamBSelectMatch"></select></label><br>
+<label>試合形式:
+<input type="radio" name="matchType" value="予選" checked>予選
+<input type="radio" name="matchType" value="トーナメント">トーナメント
+</label><br>
+
+<div id="setOptions">
+<label>セット数:
+<select id="setCountSelect">
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+</select>
+</label>
+</div>
+
+<div id="setsContainer"></div>
+<div class="result">勝者: <span id="resultSpan"></span></div>
+<button class="saveBtn" id="saveMatchBtn">試合保存</button>
+</section>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyC2sPMvyMQZDlys0McPPxZvpKhmztod2ho",
+  authDomain: "dodge-player-7a5ff.firebaseapp.com",
+  databaseURL: "https://dodge-player-7a5ff-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dodge-player-7a5ff",
+  storageBucket: "dodge-player-7a5ff.appspot.com",
+  messagingSenderId: "752106851441",
+  appId: "1:752106851441:web:7081da0e058980ab479fd0",
+  measurementId: "G-84DLRYS2X4"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// タブ切り替え
+const tabs={tabTeam,tabTournament,tabMatch};
+const sections={sectionTeam,sectionTournament,sectionMatch};
+for(let t in tabs){
+  tabs[t].addEventListener('click',()=>{
+    for(let s in sections) sections[s].classList.remove('active');
+    for(let b in tabs) tabs[b].classList.remove('active');
+    sections[t.replace('tab','section')].classList.add('active');
+    tabs[t].classList.add('active');
+    loadTeams(); loadTournaments(); renderSets();
+  });
+}
+
+// 年度セレクト
+function fillYearSelect(sel){
+  sel.innerHTML='';
+  for(let y=2022;y<=2030;y++){
+    const opt=document.createElement('option');
+    opt.value=y+'年度'; opt.textContent=y+'年度';
+    sel.appendChild(opt);
+  }
+}
+fillYearSelect(yearSelectTournament);
+fillYearSelect(yearSelectMatch);
+
+// チーム登録
+saveMyTeamBtn.addEventListener('click',()=>{
+  const name=myTeamInput.value.trim();
+  if(!name) return alert('自チーム名を入力してね');
+  const key=db.ref('teams/myTeams').push().key;
+  db.ref(`teams/myTeams/${key}`).set(name).then(()=>{alert('登録完了'); myTeamInput.value=''; loadTeams();});
+});
+saveOpponentTeamBtn.addEventListener('click',()=>{
+  const name=opponentTeamInput.value.trim();
+  if(!name) return alert('敵チーム名を入力してね');
+  const key=db.ref('teams/opponentTeams').push().key;
+  db.ref(`teams/opponentTeams/${key}`).set(name).then(()=>{alert('登録完了'); opponentTeamInput.value=''; loadTeams();});
+});
+
+// 大会登録
+saveTournamentBtn.addEventListener('click',()=>{
+  const year=yearSelectTournament.value;
+  const name=tournamentInput.value.trim();
+  const category=categorySelect.value;
+  if(!name) return alert('大会名を入力');
+  const key=db.ref('tournaments').push().key;
+  db.ref(`tournaments/${key}`).set({year,tournamentName:name,category}).then(()=>{alert('大会登録完了'); tournamentInput.value=''; loadTournaments();});
+});
+
+// ロード処理
+function loadTeams(){
+  teamASelectMatch.innerHTML=''; teamBSelectMatch.innerHTML='';
+  db.ref('teams/myTeams').once('value',snap=>{
+    snap.forEach(s=>{teamASelectMatch.appendChild(new Option(s.val(),s.val()));});
+  });
+  db.ref('teams/opponentTeams').once('value',snap=>{
+    snap.forEach(s=>{teamBSelectMatch.appendChild(new Option(s.val(),s.val()));});
+  });
+}
+function loadTournaments(){
+  tournamentSelectMatch.innerHTML='';
+  db.ref('tournaments').once('value',snap=>{
+    snap.forEach(s=>{
+      const v=s.val();
+      const opt=document.createElement('option');
+      opt.value=s.key; opt.textContent=v.tournamentName; tournamentSelectMatch.appendChild(opt);
+    });
+  });
+}
+
+// セット描画
+function renderSets(){
+  const matchType=document.querySelector('input[name="matchType"]:checked').value;
+  const container=setsContainer; container.innerHTML='';
+  const teamA=teamASelectMatch.value; const teamB=teamBSelectMatch.value;
+  let setCount=matchType==='予選'?1:parseInt(setCountSelect.value);
+  setOptions.style.display=matchType==='予選'?'none':'block';
+
+  for(let i=1;i<=setCount;i++){
+    const box=document.createElement('div'); box.classList.add('setBox');
+    const label=document.createElement('div'); label.textContent=`${i}セット目`; box.appendChild(label);
+
+    const row=document.createElement('div'); row.classList.add('setRow');
+    const scoreA=document.createElement('select'); const scoreB=document.createElement('select');
+    for(let s=0;s<=8;s++){scoreA.appendChild(new Option(s,s)); scoreB.appendChild(new Option(s,s));}
+    row.append(`${teamA}: `,scoreA,`${teamB}: `,scoreB);
+    box.appendChild(row);
+
+    const vpgRow=document.createElement('div'); vpgRow.classList.add('vpgRow'); vpgRow.style.display='none';
+    const vpgA=document.createElement('select'); const vpgB=document.createElement('select');
+    for(let s=0;s<=8;s++){vpgA.appendChild(new Option(s,s)); vpgB.appendChild(new Option(s,s));}
+    vpgRow.append(`VPG ${teamA}: `,vpgA,`${teamB}: `,vpgB);
+    box.appendChild(vpgRow);
+
+    container.appendChild(box);
+
+    function checkVPG(){
+      const a=parseInt(scoreA.value),b=parseInt(scoreB.value);
+      if(matchType==='トーナメント'&&a===b&&a!==0) vpgRow.style.display='flex';
+      else vpgRow.style.display='none';
+      calculateResult();
+    }
+
+    function calculateResult(){
+      const boxes=document.querySelectorAll('.setBox');
+      let winsA=0,winsB=0;
+      boxes.forEach(bx=>{
+        const s=bx.querySelectorAll('.setRow select');
+        let a=parseInt(s[0].value),b=parseInt(s[1].value);
+        const v=bx.querySelector('.vpgRow');
+        if(v.style.display==='flex'){
+          const vs=v.querySelectorAll('select');
+          const va=parseInt(vs[0].value),vb=parseInt(vs[1].value);
+          if(!(va===0&&vb===0)){a=va;b=vb;}
+        }
+        if(a>b)winsA++;else if(b>a)winsB++;
+      });
+      resultSpan.textContent=winsA>winsB?teamA:winsB>winsA?teamB:'引き分け';
+    }
+
+    scoreA.addEventListener('change',checkVPG);
+    scoreB.addEventListener('change',checkVPG);
+    vpgA.addEventListener('change',calculateResult);
+    vpgB.addEventListener('change',calculateResult);
+  }
+}
+
+// 保存処理
+saveMatchBtn.addEventListener('click', async ()=>{
+  const year = yearSelectMatch.value;
+  const tournamentKey = tournamentSelectMatch.value;
+  const category = matchCategorySelect.value;
+  const type = document.querySelector('input[name="matchType"]:checked').value;
+  const teamA = teamASelectMatch.value;
+  const teamB = teamBSelectMatch.value;
+
+  // 大会名文字列取得
+  const snapshot = await db.ref(`tournaments/${tournamentKey}/tournamentName`).get();
+  const tournamentName = snapshot.exists()?snapshot.val():"未分類大会";
+
+  const sets=[];
+  document.querySelectorAll('.setBox').forEach(box=>{
+    const s = box.querySelectorAll('.setRow select');
+    const vpgs = box.querySelectorAll('.vpgRow select');
+    const scoreA = s[0].value, scoreB = s[1].value;
+    let data = { scoreA, scoreB };
+    if(vpgs.length===2){
+      const vpgA = vpgs[0].value, vpgB = vpgs[1].value;
+      if((vpgA!=="0"||vpgB!=="0") && (vpgA!==""&&vpgB!=="")) data.vpgA=vpgA,data.vpgB=vpgB;
+    }
+    sets.push(data);
+  });
+
+  const key = db.ref('matches').push().key;
+  db.ref(`matches/${key}`).set({year,tournamentKey,tournamentName,category,type,teamA,teamB,sets}).then(()=>alert('試合保存完了！'));
+});
+
+loadTeams(); loadTournaments(); renderSets();
+document.querySelectorAll('input[name="matchType"]').forEach(r=>r.addEventListener('change',renderSets));
+setCountSelect.addEventListener('change',renderSets);
+teamASelectMatch.addEventListener('change',renderSets);
+teamBSelectMatch.addEventListener('change',renderSets);
+</script>
+</body>
+</html>
